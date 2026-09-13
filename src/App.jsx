@@ -13,12 +13,12 @@ const COLORS = {
   inkSoft: "#3C5049",
 };
 
-const HOLDINGS = [
-  { id: 1, name: "Northbridge Renewables", ticker: "NBR", weight: 18, value: 4120, change: 2.3, screen: "clear" },
-  { id: 2, name: "Vantage Health Systems", ticker: "VHS", weight: 14, value: 3210, change: -0.8, screen: "clear" },
-  { id: 3, name: "Alden Industrial Materials", ticker: "AIM", weight: 11, value: 2540, change: 1.1, screen: "review" },
-  { id: 4, name: "Cedarline Consumer Goods", ticker: "CDL", weight: 9, value: 2080, change: 0.4, screen: "clear" },
-  { id: 5, name: "Foraya Sukuk Trust", ticker: "FST", weight: 22, value: 5060, change: 0.6, screen: "clear" },
+const STARTER_HOLDINGS = [
+  { name: "Northbridge Renewables", ticker: "NBR", weight: 18, value: 4120, change: 2.3, screen: "clear" },
+  { name: "Vantage Health Systems", ticker: "VHS", weight: 14, value: 3210, change: -0.8, screen: "clear" },
+  { name: "Alden Industrial Materials", ticker: "AIM", weight: 11, value: 2540, change: 1.1, screen: "review" },
+  { name: "Cedarline Consumer Goods", ticker: "CDL", weight: 9, value: 2080, change: 0.4, screen: "clear" },
+  { name: "Foraya Sukuk Trust", ticker: "FST", weight: 22, value: 5060, change: 0.6, screen: "clear" },
 ];
 
 const DISCOVER = [
@@ -47,8 +47,74 @@ function StatusDot({ status }) {
 }
 
 function Dashboard() {
-  const total = HOLDINGS.reduce((s, h) => s + h.value, 0);
+  const [holdings, setHoldings] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [seeding, setSeeding] = useState(false);
+
+  const loadHoldings = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("holdings")
+      .select("*")
+      .order("weight", { ascending: false });
+    if (!error) setHoldings(data || []);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    loadHoldings();
+  }, []);
+
+  const handleSeed = async () => {
+    setSeeding(true);
+    const { data: userData } = await supabase.auth.getUser();
+    const rows = STARTER_HOLDINGS.map((h) => ({ ...h, user_id: userData.user.id }));
+    const { error } = await supabase.from("holdings").insert(rows);
+    if (!error) await loadHoldings();
+    setSeeding(false);
+  };
+
+  if (loading) {
+    return (
+      <div style={{ fontFamily: "Inter", fontSize: 13.5, color: COLORS.inkSoft }}>Loading your portfolio…</div>
+    );
+  }
+
+  if (holdings.length === 0) {
+    return (
+      <div style={{ maxWidth: 420 }}>
+        <div style={{ fontFamily: "Fraunces", fontSize: 26, fontWeight: 500, color: COLORS.ink, marginBottom: 10 }}>
+          No holdings yet
+        </div>
+        <div style={{ fontFamily: "Inter", fontSize: 13.5, color: COLORS.inkSoft, marginBottom: 24 }}>
+          Your portfolio is empty. Add a set of sample holdings to see how the dashboard looks, or connect real
+          data later.
+        </div>
+        <button
+          onClick={handleSeed}
+          disabled={seeding}
+          style={{
+            fontFamily: "Inter",
+            fontWeight: 600,
+            fontSize: 14,
+            padding: "12px 20px",
+            background: COLORS.ink,
+            color: COLORS.ivory,
+            border: "none",
+            cursor: seeding ? "default" : "pointer",
+            opacity: seeding ? 0.7 : 1,
+          }}
+        >
+          {seeding ? "Adding…" : "Add sample holdings"}
+        </button>
+      </div>
+    );
+  }
+
+  const total = holdings.reduce((s, h) => s + Number(h.value), 0);
   const dayChange = 1.4;
+  const clearCount = holdings.filter((h) => h.screen === "clear").length;
+
   return (
     <div>
       <div style={{ marginBottom: 40 }}>
@@ -65,7 +131,7 @@ function Dashboard() {
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 1, background: "#E4DDCB", marginBottom: 40 }}>
         {[
-          { label: "Holdings screened clear", value: "16 of 18" },
+          { label: "Holdings screened clear", value: `${clearCount} of ${holdings.length}` },
           { label: "Restricted income to purify", value: "$14.20" },
           { label: "Values screen", value: "Active" },
         ].map((s) => (
@@ -82,7 +148,7 @@ function Dashboard() {
       </div>
 
       <div>
-        {HOLDINGS.map((h, i) => (
+        {holdings.map((h, i) => (
           <div
             key={h.id}
             style={{
@@ -108,7 +174,7 @@ function Dashboard() {
             </div>
             <div style={{ textAlign: "right" }}>
               <div style={{ fontFamily: "Inter", fontWeight: 600, fontSize: 14.5, color: COLORS.ink }}>
-                ${h.value.toLocaleString()}
+                ${Number(h.value).toLocaleString()}
               </div>
               <div style={{ fontFamily: "Inter", fontSize: 12.5, color: h.change >= 0 ? COLORS.sage : COLORS.clay, marginTop: 3 }}>
                 {h.change >= 0 ? "+" : ""}{h.change}%
