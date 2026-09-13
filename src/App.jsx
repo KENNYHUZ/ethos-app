@@ -1,4 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import Auth from "./Auth";
+import { supabase } from "./supabaseClient";
 
 const FONT_IMPORT = `@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap');`;
 
@@ -246,6 +248,34 @@ function Calculator() {
 
 export default function EthosApp() {
   const [tab, setTab] = useState("dashboard");
+  const [session, setSession] = useState(null);
+  const [checking, setChecking] = useState(true);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session);
+      setChecking(false);
+    });
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      setSession(newSession);
+    });
+    return () => listener.subscription.unsubscribe();
+  }, []);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setSession(null);
+  };
+
+  if (checking) {
+    return (
+      <div style={{ background: COLORS.ink, minHeight: "100vh" }} />
+    );
+  }
+
+  if (!session) {
+    return <Auth onLoggedIn={setSession} />;
+  }
 
   const tabs = [
     { key: "dashboard", label: "Dashboard" },
@@ -257,11 +287,11 @@ export default function EthosApp() {
     <div style={{ background: COLORS.ivory, minHeight: "100%", fontFamily: "Inter" }}>
       <style>{FONT_IMPORT}</style>
       <div style={{ display: "flex", minHeight: 560 }}>
-        <div style={{ width: 190, background: COLORS.ink, padding: "28px 20px", flexShrink: 0 }}>
+        <div style={{ width: 190, background: COLORS.ink, padding: "28px 20px", flexShrink: 0, display: "flex", flexDirection: "column" }}>
           <div style={{ fontFamily: "Fraunces", fontSize: 22, fontWeight: 500, color: COLORS.ivory, marginBottom: 40 }}>
             Ethos
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4, flex: 1 }}>
             {tabs.map((t) => (
               <button
                 key={t.key}
@@ -283,6 +313,21 @@ export default function EthosApp() {
               </button>
             ))}
           </div>
+          <button
+            onClick={handleLogout}
+            style={{
+              textAlign: "left",
+              background: "transparent",
+              border: "none",
+              color: "rgba(246,242,233,0.4)",
+              fontFamily: "Inter",
+              fontSize: 12.5,
+              padding: "10px 12px",
+              cursor: "pointer",
+            }}
+          >
+            Log out
+          </button>
         </div>
         <div style={{ flex: 1, padding: "36px 44px", overflow: "auto" }}>
           {tab === "dashboard" && <Dashboard />}
