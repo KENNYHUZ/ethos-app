@@ -13,13 +13,7 @@ const COLORS = {
   inkSoft: "#3C5049",
 };
 
-const STARTER_HOLDINGS = [
-  { name: "Northbridge Renewables", ticker: "NBR", weight: 18, value: 4120, change: 2.3, screen: "clear" },
-  { name: "Vantage Health Systems", ticker: "VHS", weight: 14, value: 3210, change: -0.8, screen: "clear" },
-  { name: "Alden Industrial Materials", ticker: "AIM", weight: 11, value: 2540, change: 1.1, screen: "review" },
-  { name: "Cedarline Consumer Goods", ticker: "CDL", weight: 9, value: 2080, change: 0.4, screen: "clear" },
-  { name: "Foraya Sukuk Trust", ticker: "FST", weight: 22, value: 5060, change: 0.6, screen: "clear" },
-];
+const SCREEN_OPTIONS = ["clear", "review", "excluded"];
 
 const DISCOVER = [
   { id: 1, name: "Northbridge Renewables", ticker: "NBR", sector: "Clean Energy", debtRatio: 12, interestIncome: 0.4, status: "clear" },
@@ -46,17 +40,123 @@ function StatusDot({ status }) {
   );
 }
 
+function AddHoldingForm({ onAdded, onCancel }) {
+  const [name, setName] = useState("");
+  const [ticker, setTicker] = useState("");
+  const [value, setValue] = useState("");
+  const [screen, setScreen] = useState("clear");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+    setSaving(true);
+    const { data: userData } = await supabase.auth.getUser();
+    const { error: insertError } = await supabase.from("holdings").insert({
+      user_id: userData.user.id,
+      name,
+      ticker: ticker.toUpperCase(),
+      value: Number(value),
+      weight: 0,
+      change: 0,
+      screen,
+    });
+    setSaving(false);
+    if (insertError) {
+      setError(insertError.message);
+    } else {
+      onAdded();
+    }
+  };
+
+  const inputStyle = {
+    width: "100%",
+    boxSizing: "border-box",
+    padding: "11px 12px",
+    marginBottom: 12,
+    background: "#fff",
+    border: "1px solid #D8D0BC",
+    borderRadius: 4,
+    color: COLORS.ink,
+    fontSize: 14,
+    fontFamily: "Inter",
+  };
+
+  return (
+    <form
+      onSubmit={handleSubmit}
+      style={{ background: COLORS.ivory, border: "1px solid #E4DDCB", padding: 24, maxWidth: 420, marginBottom: 32 }}
+    >
+      <div style={{ fontFamily: "Fraunces", fontSize: 19, fontWeight: 500, color: COLORS.ink, marginBottom: 16 }}>
+        Add a holding
+      </div>
+
+      <input style={inputStyle} placeholder="Company name" value={name} onChange={(e) => setName(e.target.value)} required />
+      <input style={inputStyle} placeholder="Ticker (e.g. NBR)" value={ticker} onChange={(e) => setTicker(e.target.value)} required maxLength={8} />
+      <input style={inputStyle} type="number" placeholder="Value ($)" value={value} onChange={(e) => setValue(e.target.value)} required min="0" step="0.01" />
+      <select style={inputStyle} value={screen} onChange={(e) => setScreen(e.target.value)}>
+        {SCREEN_OPTIONS.map((opt) => (
+          <option key={opt} value={opt}>
+            {STATUS_META[opt].label}
+          </option>
+        ))}
+      </select>
+
+      {error && (
+        <div style={{ color: COLORS.clay, fontSize: 13, marginBottom: 12, fontFamily: "Inter" }}>{error}</div>
+      )}
+
+      <div style={{ display: "flex", gap: 10 }}>
+        <button
+          type="submit"
+          disabled={saving}
+          style={{
+            fontFamily: "Inter",
+            fontWeight: 600,
+            fontSize: 14,
+            padding: "11px 18px",
+            background: COLORS.ink,
+            color: COLORS.ivory,
+            border: "none",
+            cursor: saving ? "default" : "pointer",
+            opacity: saving ? 0.7 : 1,
+          }}
+        >
+          {saving ? "Saving…" : "Save holding"}
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          style={{
+            fontFamily: "Inter",
+            fontWeight: 500,
+            fontSize: 14,
+            padding: "11px 18px",
+            background: "transparent",
+            color: COLORS.inkSoft,
+            border: "1px solid #D8D0BC",
+            cursor: "pointer",
+          }}
+        >
+          Cancel
+        </button>
+      </div>
+    </form>
+  );
+}
+
 function Dashboard() {
   const [holdings, setHoldings] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [seeding, setSeeding] = useState(false);
+  const [showForm, setShowForm] = useState(false);
 
   const loadHoldings = async () => {
     setLoading(true);
     const { data, error } = await supabase
       .from("holdings")
       .select("*")
-      .order("weight", { ascending: false });
+      .order("value", { ascending: false });
     if (!error) setHoldings(data || []);
     setLoading(false);
   };
@@ -65,13 +165,9 @@ function Dashboard() {
     loadHoldings();
   }, []);
 
-  const handleSeed = async () => {
-    setSeeding(true);
-    const { data: userData } = await supabase.auth.getUser();
-    const rows = STARTER_HOLDINGS.map((h) => ({ ...h, user_id: userData.user.id }));
-    const { error } = await supabase.from("holdings").insert(rows);
-    if (!error) await loadHoldings();
-    setSeeding(false);
+  const handleDelete = async (id) => {
+    await supabase.from("holdings").delete().eq("id", id);
+    loadHoldings();
   };
 
   if (loading) {
@@ -80,19 +176,21 @@ function Dashboard() {
     );
   }
 
-  if (holdings.length === 0) {
+  const total = holdings.reduce((s, h) => s + Number(h.value), 0);
+  const dayChange = 1.4;
+  const clearCount = holdings.filter((h) => h.screen === "clear").length;
+
+  if (holdings.length === 0 && !showForm) {
     return (
       <div style={{ maxWidth: 420 }}>
         <div style={{ fontFamily: "Fraunces", fontSize: 26, fontWeight: 500, color: COLORS.ink, marginBottom: 10 }}>
           No holdings yet
         </div>
         <div style={{ fontFamily: "Inter", fontSize: 13.5, color: COLORS.inkSoft, marginBottom: 24 }}>
-          Your portfolio is empty. Add a set of sample holdings to see how the dashboard looks, or connect real
-          data later.
+          Add your first holding to start tracking your portfolio.
         </div>
         <button
-          onClick={handleSeed}
-          disabled={seeding}
+          onClick={() => setShowForm(true)}
           style={{
             fontFamily: "Inter",
             fontWeight: 600,
@@ -101,88 +199,130 @@ function Dashboard() {
             background: COLORS.ink,
             color: COLORS.ivory,
             border: "none",
-            cursor: seeding ? "default" : "pointer",
-            opacity: seeding ? 0.7 : 1,
+            cursor: "pointer",
           }}
         >
-          {seeding ? "Adding…" : "Add sample holdings"}
+          Add a holding
         </button>
       </div>
     );
   }
 
-  const total = holdings.reduce((s, h) => s + Number(h.value), 0);
-  const dayChange = 1.4;
-  const clearCount = holdings.filter((h) => h.screen === "clear").length;
-
   return (
     <div>
-      <div style={{ marginBottom: 40 }}>
-        <div style={{ fontFamily: "Inter", fontSize: 13, color: COLORS.inkSoft, marginBottom: 6 }}>Portfolio value</div>
-        <div style={{ display: "flex", alignItems: "baseline", gap: 14 }}>
-          <div style={{ fontFamily: "Fraunces", fontOpticalSizing: "auto", fontWeight: 500, fontSize: 52, color: COLORS.ink, lineHeight: 1 }}>
-            ${total.toLocaleString()}
-          </div>
-          <div style={{ fontFamily: "Inter", fontSize: 15, fontWeight: 600, color: COLORS.sage }}>
-            +{dayChange}% today
-          </div>
-        </div>
-      </div>
+      {showForm && (
+        <AddHoldingForm
+          onAdded={() => { setShowForm(false); loadHoldings(); }}
+          onCancel={() => setShowForm(false)}
+        />
+      )}
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 1, background: "#E4DDCB", marginBottom: 40 }}>
-        {[
-          { label: "Holdings screened clear", value: `${clearCount} of ${holdings.length}` },
-          { label: "Restricted income to purify", value: "$14.20" },
-          { label: "Values screen", value: "Active" },
-        ].map((s) => (
-          <div key={s.label} style={{ background: COLORS.ivory, padding: "20px 22px" }}>
-            <div style={{ fontFamily: "Inter", fontSize: 12, color: COLORS.inkSoft, marginBottom: 8 }}>{s.label}</div>
-            <div style={{ fontFamily: "Fraunces", fontSize: 22, fontWeight: 500, color: COLORS.ink }}>{s.value}</div>
-          </div>
-        ))}
-      </div>
-
-      <div style={{ fontFamily: "Fraunces", fontSize: 19, fontWeight: 500, color: COLORS.ink, marginBottom: 4 }}>Holdings</div>
-      <div style={{ fontFamily: "Inter", fontSize: 13, color: COLORS.inkSoft, marginBottom: 18 }}>
-        Ordered by portfolio weight
-      </div>
-
-      <div>
-        {holdings.map((h, i) => (
-          <div
-            key={h.id}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              padding: "16px 0",
-              borderTop: i === 0 ? `1px solid #E4DDCB` : "none",
-              borderBottom: "1px solid #E4DDCB",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-              <div style={{ width: 38, textAlign: "right", fontFamily: "Inter", fontSize: 12, color: COLORS.inkSoft }}>
-                {h.weight}%
+      {holdings.length > 0 && (
+        <>
+          <div style={{ marginBottom: 40 }}>
+            <div style={{ fontFamily: "Inter", fontSize: 13, color: COLORS.inkSoft, marginBottom: 6 }}>Portfolio value</div>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 14 }}>
+              <div style={{ fontFamily: "Fraunces", fontOpticalSizing: "auto", fontWeight: 500, fontSize: 52, color: COLORS.ink, lineHeight: 1 }}>
+                ${total.toLocaleString()}
               </div>
-              <div>
-                <div style={{ fontFamily: "Inter", fontWeight: 600, fontSize: 14.5, color: COLORS.ink }}>{h.name}</div>
-                <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 3 }}>
-                  <span style={{ fontFamily: "Inter", fontSize: 12, color: COLORS.inkSoft }}>{h.ticker}</span>
-                  <StatusDot status={h.screen} />
+              <div style={{ fontFamily: "Inter", fontSize: 15, fontWeight: 600, color: COLORS.sage }}>
+                +{dayChange}% today
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 1, background: "#E4DDCB", marginBottom: 32 }}>
+            {[
+              { label: "Holdings screened clear", value: `${clearCount} of ${holdings.length}` },
+              { label: "Restricted income to purify", value: "$14.20" },
+              { label: "Values screen", value: "Active" },
+            ].map((s) => (
+              <div key={s.label} style={{ background: COLORS.ivory, padding: "20px 22px" }}>
+                <div style={{ fontFamily: "Inter", fontSize: 12, color: COLORS.inkSoft, marginBottom: 8 }}>{s.label}</div>
+                <div style={{ fontFamily: "Fraunces", fontSize: 22, fontWeight: 500, color: COLORS.ink }}>{s.value}</div>
+              </div>
+            ))}
+          </div>
+
+          {!showForm && (
+            <button
+              onClick={() => setShowForm(true)}
+              style={{
+                fontFamily: "Inter",
+                fontWeight: 600,
+                fontSize: 13.5,
+                padding: "10px 16px",
+                background: "transparent",
+                color: COLORS.ink,
+                border: `1px solid ${COLORS.ink}`,
+                cursor: "pointer",
+                marginBottom: 28,
+              }}
+            >
+              + Add a holding
+            </button>
+          )}
+
+          <div style={{ fontFamily: "Fraunces", fontSize: 19, fontWeight: 500, color: COLORS.ink, marginBottom: 4 }}>Holdings</div>
+          <div style={{ fontFamily: "Inter", fontSize: 13, color: COLORS.inkSoft, marginBottom: 18 }}>
+            Ordered by value
+          </div>
+
+          <div>
+            {holdings.map((h, i) => {
+              const weightPct = total > 0 ? ((Number(h.value) / total) * 100).toFixed(0) : 0;
+              return (
+                <div
+                  key={h.id}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "16px 0",
+                    borderTop: i === 0 ? `1px solid #E4DDCB` : "none",
+                    borderBottom: "1px solid #E4DDCB",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                    <div style={{ width: 38, textAlign: "right", fontFamily: "Inter", fontSize: 12, color: COLORS.inkSoft }}>
+                      {weightPct}%
+                    </div>
+                    <div>
+                      <div style={{ fontFamily: "Inter", fontWeight: 600, fontSize: 14.5, color: COLORS.ink }}>{h.name}</div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 3 }}>
+                        <span style={{ fontFamily: "Inter", fontSize: 12, color: COLORS.inkSoft }}>{h.ticker}</span>
+                        <StatusDot status={h.screen} />
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                    <div style={{ textAlign: "right" }}>
+                      <div style={{ fontFamily: "Inter", fontWeight: 600, fontSize: 14.5, color: COLORS.ink }}>
+                        ${Number(h.value).toLocaleString()}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleDelete(h.id)}
+                      title="Delete holding"
+                      style={{
+                        background: "transparent",
+                        border: "none",
+                        color: COLORS.clay,
+                        fontFamily: "Inter",
+                        fontSize: 12,
+                        cursor: "pointer",
+                        padding: 4,
+                      }}
+                    >
+                      Remove
+                    </button>
+                  </div>
                 </div>
-              </div>
-            </div>
-            <div style={{ textAlign: "right" }}>
-              <div style={{ fontFamily: "Inter", fontWeight: 600, fontSize: 14.5, color: COLORS.ink }}>
-                ${Number(h.value).toLocaleString()}
-              </div>
-              <div style={{ fontFamily: "Inter", fontSize: 12.5, color: h.change >= 0 ? COLORS.sage : COLORS.clay, marginTop: 3 }}>
-                {h.change >= 0 ? "+" : ""}{h.change}%
-              </div>
-            </div>
+              );
+            })}
           </div>
-        ))}
-      </div>
+        </>
+      )}
     </div>
   );
 }
