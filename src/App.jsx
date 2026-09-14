@@ -45,6 +45,7 @@ function AddHoldingForm({ onAdded, onCancel }) {
   const [ticker, setTicker] = useState("");
   const [value, setValue] = useState("");
   const [screen, setScreen] = useState("clear");
+  const [interestPct, setInterestPct] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -61,6 +62,7 @@ function AddHoldingForm({ onAdded, onCancel }) {
       weight: 0,
       change: 0,
       screen,
+      interest_pct: Number(interestPct) || 0,
     });
     setSaving(false);
     if (insertError) {
@@ -102,6 +104,16 @@ function AddHoldingForm({ onAdded, onCancel }) {
           </option>
         ))}
       </select>
+      <input
+        style={inputStyle}
+        type="number"
+        placeholder="% of income that's interest-based (optional, e.g. 2)"
+        value={interestPct}
+        onChange={(e) => setInterestPct(e.target.value)}
+        min="0"
+        max="100"
+        step="0.1"
+      />
 
       {error && (
         <div style={{ color: COLORS.clay, fontSize: 13, marginBottom: 12, fontFamily: "Inter" }}>{error}</div>
@@ -179,6 +191,10 @@ function Dashboard() {
   const total = holdings.reduce((s, h) => s + Number(h.value), 0);
   const dayChange = 1.4;
   const clearCount = holdings.filter((h) => h.screen === "clear").length;
+  const restrictedTotal = holdings.reduce(
+    (sum, h) => sum + Number(h.value) * (Number(h.interest_pct || 0) / 100),
+    0
+  );
 
   if (holdings.length === 0 && !showForm) {
     return (
@@ -234,7 +250,7 @@ function Dashboard() {
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 1, background: "#E4DDCB", marginBottom: 32 }}>
             {[
               { label: "Holdings screened clear", value: `${clearCount} of ${holdings.length}` },
-              { label: "Restricted income to purify", value: "$14.20" },
+              { label: "Restricted income to purify", value: `$${restrictedTotal.toFixed(2)}` },
               { label: "Values screen", value: "Active" },
             ].map((s) => (
               <div key={s.label} style={{ background: COLORS.ivory, padding: "20px 22px" }}>
@@ -408,7 +424,30 @@ function Discover() {
 }
 
 function Calculator() {
-  const [income, setIncome] = useState(14.2);
+  const [holdings, setHoldings] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const load = async () => {
+      const { data, error } = await supabase.from("holdings").select("*");
+      if (!error) setHoldings(data || []);
+      setLoading(false);
+    };
+    load();
+  }, []);
+
+  if (loading) {
+    return (
+      <div style={{ fontFamily: "Inter", fontSize: 13.5, color: COLORS.inkSoft }}>Calculating…</div>
+    );
+  }
+
+  const restrictedTotal = holdings.reduce(
+    (sum, h) => sum + Number(h.value) * (Number(h.interest_pct || 0) / 100),
+    0
+  );
+  const affectedCount = holdings.filter((h) => Number(h.interest_pct || 0) > 0).length;
+
   return (
     <div style={{ maxWidth: 460 }}>
       <div style={{ fontFamily: "Fraunces", fontSize: 28, fontWeight: 500, color: COLORS.ink, marginBottom: 8 }}>
@@ -421,33 +460,22 @@ function Calculator() {
 
       <div style={{ background: COLORS.ivory, border: "1px solid #E4DDCB", padding: 28 }}>
         <div style={{ fontFamily: "Inter", fontSize: 12.5, color: COLORS.inkSoft, marginBottom: 10 }}>
-          Restricted income this quarter
+          Restricted income, based on your holdings
         </div>
         <div style={{ fontFamily: "Fraunces", fontSize: 40, fontWeight: 500, color: COLORS.ink, marginBottom: 22 }}>
-          ${income.toFixed(2)}
+          ${restrictedTotal.toFixed(2)}
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", fontFamily: "Inter", fontSize: 13, color: COLORS.inkSoft, borderTop: "1px solid #E4DDCB", paddingTop: 16 }}>
-          <span>Across 3 holdings</span>
-          <span>Updated quarterly</span>
+          <span>Across {affectedCount} holding{affectedCount === 1 ? "" : "s"}</span>
+          <span>Calculated live</span>
         </div>
       </div>
 
-      <button
-        style={{
-          marginTop: 20,
-          fontFamily: "Inter",
-          fontWeight: 600,
-          fontSize: 14,
-          padding: "13px 22px",
-          background: COLORS.ink,
-          color: COLORS.ivory,
-          border: "none",
-          cursor: "pointer",
-          width: "100%",
-        }}
-      >
-        Mark as donated
-      </button>
+      {holdings.length === 0 && (
+        <div style={{ fontFamily: "Inter", fontSize: 13, color: COLORS.inkSoft, marginTop: 16 }}>
+          Add holdings on the Dashboard to see this calculated.
+        </div>
+      )}
     </div>
   );
 }
