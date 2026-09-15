@@ -2,7 +2,26 @@ import React, { useState, useEffect } from "react";
 import Auth from "./Auth";
 import { supabase } from "./supabaseClient";
 
-const FONT_IMPORT = `@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap');`;
+const FONT_IMPORT = `
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap');
+
+.ethos-shell { display: flex; min-height: 560px; }
+.ethos-sidebar { width: 190px; background: #132821; padding: 28px 20px; flex-shrink: 0; display: flex; flex-direction: column; }
+.ethos-main { flex: 1; padding: 36px 44px; overflow: auto; min-width: 0; }
+.ethos-portfolio-value { font-size: 52px; }
+.ethos-stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: #E4DDCB; margin-bottom: 32px; }
+
+@media (max-width: 640px) {
+  .ethos-shell { flex-direction: column; min-height: auto; }
+  .ethos-sidebar { width: 100%; box-sizing: border-box; flex-direction: row; flex-wrap: wrap; align-items: center; padding: 14px 16px; gap: 6px; }
+  .ethos-sidebar > div:first-child { margin-bottom: 0; margin-right: auto; font-size: 18px; }
+  .ethos-sidebar > div:nth-child(2) { flex-direction: row; flex: none; gap: 4px; }
+  .ethos-sidebar button { padding: 7px 10px; font-size: 12.5px; }
+  .ethos-main { padding: 20px 16px; }
+  .ethos-portfolio-value { font-size: 34px; }
+  .ethos-stat-grid { grid-template-columns: 1fr; }
+}
+`;
 
 const COLORS = {
   ink: "#132821",
@@ -237,8 +256,8 @@ function Dashboard() {
         <>
           <div style={{ marginBottom: 40 }}>
             <div style={{ fontFamily: "Inter", fontSize: 13, color: COLORS.inkSoft, marginBottom: 6 }}>Portfolio value</div>
-            <div style={{ display: "flex", alignItems: "baseline", gap: 14 }}>
-              <div style={{ fontFamily: "Fraunces", fontOpticalSizing: "auto", fontWeight: 500, fontSize: 52, color: COLORS.ink, lineHeight: 1 }}>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 14, flexWrap: "wrap" }}>
+              <div className="ethos-portfolio-value" style={{ fontFamily: "Fraunces", fontOpticalSizing: "auto", fontWeight: 500, color: COLORS.ink, lineHeight: 1 }}>
                 ${total.toLocaleString()}
               </div>
               <div style={{ fontFamily: "Inter", fontSize: 15, fontWeight: 600, color: COLORS.sage }}>
@@ -247,7 +266,7 @@ function Dashboard() {
             </div>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 1, background: "#E4DDCB", marginBottom: 32 }}>
+          <div className="ethos-stat-grid">
             {[
               { label: "Holdings screened clear", value: `${clearCount} of ${holdings.length}` },
               { label: "Restricted income to purify", value: `$${restrictedTotal.toFixed(2)}` },
@@ -520,8 +539,8 @@ export default function EthosApp() {
   return (
     <div style={{ background: COLORS.ivory, minHeight: "100%", fontFamily: "Inter" }}>
       <style>{FONT_IMPORT}</style>
-      <div style={{ display: "flex", minHeight: 560 }}>
-        <div style={{ width: 190, background: COLORS.ink, padding: "28px 20px", flexShrink: 0, display: "flex", flexDirection: "column" }}>
+      <div className="ethos-shell">
+        <div className="ethos-sidebar">
           <div style={{ fontFamily: "Fraunces", fontSize: 22, fontWeight: 500, color: COLORS.ivory, marginBottom: 40 }}>
             Ethos
           </div>
@@ -563,7 +582,7 @@ export default function EthosApp() {
             Log out
           </button>
         </div>
-        <div style={{ flex: 1, padding: "36px 44px", overflow: "auto" }}>
+        <div className="ethos-main">
           {tab === "dashboard" && <Dashboard />}
           {tab === "discover" && <Discover />}
           {tab === "calculator" && <Calculator />}
