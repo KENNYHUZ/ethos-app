@@ -5,23 +5,14 @@ import { supabase } from "./supabaseClient";
 const FONT_IMPORT = `
 @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap');
 
-.ethos-shell { display: flex; min-height: 560px; }
-.ethos-sidebar { width: 190px; background: #132821; padding: 28px 20px; flex-shrink: 0; display: flex; flex-direction: column; }
-.ethos-main { flex: 1; padding: 36px 44px; overflow: auto; min-width: 0; }
-.ethos-portfolio-value { font-size: 52px; }
-.ethos-stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: #E4DDCB; margin-bottom: 32px; }
-
-@media (max-width: 640px) {
-  .ethos-shell { flex-direction: column; min-height: auto; }
-  .ethos-sidebar { width: 100%; box-sizing: border-box; flex-direction: column !important; align-items: stretch; padding: 14px 16px; gap: 10px; }
-  .ethos-brand { margin-bottom: 0 !important; font-size: 18px; }
-  .ethos-nav { flex-direction: row !important; flex: none !important; gap: 6px; flex-wrap: wrap; }
-  .ethos-nav button { padding: 7px 10px; font-size: 12.5px; }
-  .ethos-logout { align-self: flex-end; padding: 4px 0 !important; }
-  .ethos-main { padding: 20px 16px; }
-  .ethos-portfolio-value { font-size: 34px; }
-  .ethos-stat-grid { grid-template-columns: 1fr; }
-}
+.ethos-app { max-width: 480px; margin: 0 auto; min-height: 100vh; box-sizing: border-box; padding-bottom: 84px; position: relative; }
+.ethos-topbar { display: flex; align-items: center; justify-content: space-between; padding: 20px 20px 4px; }
+.ethos-content { padding: 16px 20px 20px; }
+.ethos-balance-card { background: #132821; border-radius: 16px; padding: 24px 22px; color: #F6F2E9; margin-bottom: 20px; }
+.ethos-quick-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 28px; }
+.ethos-quick-tile { background: #fff; border: 1px solid #E4DDCB; border-radius: 12px; padding: 16px 8px; display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer; }
+.ethos-bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; border-top: 1px solid #E4DDCB; display: flex; justify-content: space-around; padding: 10px 8px calc(10px + env(safe-area-inset-bottom)); max-width: 480px; margin: 0 auto; }
+.ethos-nav-item { display: flex; flex-direction: column; align-items: center; gap: 3px; background: transparent; border: none; cursor: pointer; font-family: Inter; font-size: 11px; padding: 4px 10px; }
 `;
 
 const COLORS = {
@@ -49,6 +40,23 @@ const STATUS_META = {
   review: { label: "Needs review", color: COLORS.brass },
   excluded: { label: "Excluded", color: COLORS.clay },
 };
+
+// --- tiny inline icons, no external library needed ---
+function Icon({ children, size = 20 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      {children}
+    </svg>
+  );
+}
+const EyeIcon = () => <Icon><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" /><circle cx="12" cy="12" r="3" /></Icon>;
+const EyeOffIcon = () => <Icon><path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a19.7 19.7 0 0 1 4.22-5.94M9.9 4.24A10.4 10.4 0 0 1 12 4c7 0 11 8 11 8a19.9 19.9 0 0 1-2.16 3.19" /><path d="M1 1l22 22" /><path d="M14.12 14.12A3 3 0 1 1 9.88 9.88" /></Icon>;
+const BellIcon = () => <Icon size={19}><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" /></Icon>;
+const HomeIcon = ({ active }) => <Icon size={21}><path d={active ? "M3 9.5L12 3l9 6.5V21a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1V9.5z" : "M3 9.5L12 3l9 6.5V21a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1V9.5z"} fill={active ? "currentColor" : "none"} /></Icon>;
+const CompassIcon = () => <Icon size={21}><circle cx="12" cy="12" r="10" /><path d="M16.24 7.76l-2.12 6.36-6.36 2.12 2.12-6.36 6.36-2.12z" /></Icon>;
+const LeafIcon = () => <Icon size={21}><path d="M11 20A7 7 0 0 1 4 13c0-4 3-9 8-11 5 2 8 7 8 11a7 7 0 0 1-7 7c-1 0-2-.3-2-1z" /><path d="M12 4v16" /></Icon>;
+const UserIcon = () => <Icon size={21}><circle cx="12" cy="8" r="4" /><path d="M4 21c0-4 4-7 8-7s8 3 8 7" /></Icon>;
+const PlusIcon = () => <Icon size={19}><path d="M12 5v14M5 12h14" /></Icon>;
 
 function StatusDot({ status }) {
   const meta = STATUS_META[status];
@@ -99,7 +107,7 @@ function AddHoldingForm({ onAdded, onCancel }) {
     marginBottom: 12,
     background: "#fff",
     border: "1px solid #D8D0BC",
-    borderRadius: 4,
+    borderRadius: 8,
     color: COLORS.ink,
     fontSize: 14,
     fontFamily: "Inter",
@@ -108,9 +116,9 @@ function AddHoldingForm({ onAdded, onCancel }) {
   return (
     <form
       onSubmit={handleSubmit}
-      style={{ background: COLORS.ivory, border: "1px solid #E4DDCB", padding: 24, maxWidth: 420, marginBottom: 32 }}
+      style={{ background: "#fff", border: "1px solid #E4DDCB", borderRadius: 12, padding: 20, marginBottom: 20 }}
     >
-      <div style={{ fontFamily: "Fraunces", fontSize: 19, fontWeight: 500, color: COLORS.ink, marginBottom: 16 }}>
+      <div style={{ fontFamily: "Fraunces", fontSize: 18, fontWeight: 500, color: COLORS.ink, marginBottom: 14 }}>
         Add a holding
       </div>
 
@@ -127,7 +135,7 @@ function AddHoldingForm({ onAdded, onCancel }) {
       <input
         style={inputStyle}
         type="number"
-        placeholder="% of income that's interest-based (optional, e.g. 2)"
+        placeholder="% of income that's interest-based (optional)"
         value={interestPct}
         onChange={(e) => setInterestPct(e.target.value)}
         min="0"
@@ -144,15 +152,9 @@ function AddHoldingForm({ onAdded, onCancel }) {
           type="submit"
           disabled={saving}
           style={{
-            fontFamily: "Inter",
-            fontWeight: 600,
-            fontSize: 14,
-            padding: "11px 18px",
-            background: COLORS.ink,
-            color: COLORS.ivory,
-            border: "none",
-            cursor: saving ? "default" : "pointer",
-            opacity: saving ? 0.7 : 1,
+            fontFamily: "Inter", fontWeight: 600, fontSize: 14, padding: "11px 18px",
+            background: COLORS.ink, color: COLORS.ivory, border: "none", borderRadius: 8,
+            cursor: saving ? "default" : "pointer", opacity: saving ? 0.7 : 1,
           }}
         >
           {saving ? "Saving…" : "Save holding"}
@@ -161,13 +163,8 @@ function AddHoldingForm({ onAdded, onCancel }) {
           type="button"
           onClick={onCancel}
           style={{
-            fontFamily: "Inter",
-            fontWeight: 500,
-            fontSize: 14,
-            padding: "11px 18px",
-            background: "transparent",
-            color: COLORS.inkSoft,
-            border: "1px solid #D8D0BC",
+            fontFamily: "Inter", fontWeight: 500, fontSize: 14, padding: "11px 18px",
+            background: "transparent", color: COLORS.inkSoft, border: "1px solid #D8D0BC", borderRadius: 8,
             cursor: "pointer",
           }}
         >
@@ -178,17 +175,67 @@ function AddHoldingForm({ onAdded, onCancel }) {
   );
 }
 
-function Dashboard() {
+function BalanceCard({ total, clearCount, holdingsCount, hidden, onToggleHidden, onAddClick }) {
+  return (
+    <div className="ethos-balance-card">
+      <div style={{ fontFamily: "Inter", fontSize: 13, color: "rgba(246,242,233,0.65)", marginBottom: 10 }}>
+        Your Portfolio
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 6 }}>
+        <div style={{ fontFamily: "Fraunces", fontSize: 36, fontWeight: 500 }}>
+          {hidden ? "••••••" : `$${total.toLocaleString()}`}
+        </div>
+        <button
+          onClick={onToggleHidden}
+          style={{ background: "transparent", border: "none", color: "rgba(246,242,233,0.7)", cursor: "pointer", padding: 4 }}
+        >
+          {hidden ? <EyeOffIcon /> : <EyeIcon />}
+        </button>
+      </div>
+      <div style={{ fontFamily: "Inter", fontSize: 12.5, color: "rgba(246,242,233,0.55)", marginBottom: 20 }}>
+        {holdingsCount} holding{holdingsCount === 1 ? "" : "s"} · {clearCount} screened clear
+      </div>
+      <button
+        onClick={onAddClick}
+        style={{
+          fontFamily: "Inter", fontWeight: 600, fontSize: 13.5, padding: "11px 16px",
+          background: "rgba(246,242,233,0.12)", color: COLORS.ivory, border: "1px solid rgba(246,242,233,0.25)",
+          borderRadius: 8, cursor: "pointer", display: "flex", alignItems: "center", gap: 6,
+        }}
+      >
+        <PlusIcon /> Add a holding
+      </button>
+    </div>
+  );
+}
+
+function QuickActions({ onAdd, onDiscover, onPurification }) {
+  const tiles = [
+    { label: "Add", icon: <PlusIcon />, onClick: onAdd },
+    { label: "Discover", icon: <CompassIcon />, onClick: onDiscover },
+    { label: "Purify", icon: <LeafIcon />, onClick: onPurification },
+  ];
+  return (
+    <div className="ethos-quick-grid">
+      {tiles.map((t) => (
+        <div key={t.label} className="ethos-quick-tile" onClick={t.onClick}>
+          <div style={{ color: COLORS.ink }}>{t.icon}</div>
+          <div style={{ fontFamily: "Inter", fontSize: 12, fontWeight: 600, color: COLORS.ink }}>{t.label}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function Home({ goTo }) {
   const [holdings, setHoldings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [hidden, setHidden] = useState(false);
 
   const loadHoldings = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("holdings")
-      .select("*")
-      .order("value", { ascending: false });
+    const { data, error } = await supabase.from("holdings").select("*").order("value", { ascending: false });
     if (!error) setHoldings(data || []);
     setLoading(false);
   };
@@ -202,50 +249,30 @@ function Dashboard() {
     loadHoldings();
   };
 
-  if (loading) {
-    return (
-      <div style={{ fontFamily: "Inter", fontSize: 13.5, color: COLORS.inkSoft }}>Loading your portfolio…</div>
-    );
-  }
-
   const total = holdings.reduce((s, h) => s + Number(h.value), 0);
-  const dayChange = 1.4;
   const clearCount = holdings.filter((h) => h.screen === "clear").length;
-  const restrictedTotal = holdings.reduce(
-    (sum, h) => sum + Number(h.value) * (Number(h.interest_pct || 0) / 100),
-    0
-  );
 
-  if (holdings.length === 0 && !showForm) {
-    return (
-      <div style={{ maxWidth: 420 }}>
-        <div style={{ fontFamily: "Fraunces", fontSize: 26, fontWeight: 500, color: COLORS.ink, marginBottom: 10 }}>
-          No holdings yet
-        </div>
-        <div style={{ fontFamily: "Inter", fontSize: 13.5, color: COLORS.inkSoft, marginBottom: 24 }}>
-          Add your first holding to start tracking your portfolio.
-        </div>
-        <button
-          onClick={() => setShowForm(true)}
-          style={{
-            fontFamily: "Inter",
-            fontWeight: 600,
-            fontSize: 14,
-            padding: "12px 20px",
-            background: COLORS.ink,
-            color: COLORS.ivory,
-            border: "none",
-            cursor: "pointer",
-          }}
-        >
-          Add a holding
-        </button>
-      </div>
-    );
+  if (loading) {
+    return <div style={{ fontFamily: "Inter", fontSize: 13.5, color: COLORS.inkSoft }}>Loading your portfolio…</div>;
   }
 
   return (
     <div>
+      <BalanceCard
+        total={total}
+        clearCount={clearCount}
+        holdingsCount={holdings.length}
+        hidden={hidden}
+        onToggleHidden={() => setHidden(!hidden)}
+        onAddClick={() => setShowForm(true)}
+      />
+
+      <QuickActions
+        onAdd={() => setShowForm(true)}
+        onDiscover={() => goTo("discover")}
+        onPurification={() => goTo("purification")}
+      />
+
       {showForm && (
         <AddHoldingForm
           onAdded={() => { setShowForm(false); loadHoldings(); }}
@@ -253,57 +280,15 @@ function Dashboard() {
         />
       )}
 
-      {holdings.length > 0 && (
+      {holdings.length === 0 ? (
+        <div style={{ fontFamily: "Inter", fontSize: 13.5, color: COLORS.inkSoft, textAlign: "center", padding: "20px 0" }}>
+          No holdings yet — tap "Add a holding" to get started.
+        </div>
+      ) : (
         <>
-          <div style={{ marginBottom: 40 }}>
-            <div style={{ fontFamily: "Inter", fontSize: 13, color: COLORS.inkSoft, marginBottom: 6 }}>Portfolio value</div>
-            <div style={{ display: "flex", alignItems: "baseline", gap: 14, flexWrap: "wrap" }}>
-              <div className="ethos-portfolio-value" style={{ fontFamily: "Fraunces", fontOpticalSizing: "auto", fontWeight: 500, color: COLORS.ink, lineHeight: 1 }}>
-                ${total.toLocaleString()}
-              </div>
-              <div style={{ fontFamily: "Inter", fontSize: 15, fontWeight: 600, color: COLORS.sage }}>
-                +{dayChange}% today
-              </div>
-            </div>
+          <div style={{ fontFamily: "Fraunces", fontSize: 17, fontWeight: 500, color: COLORS.ink, marginBottom: 12 }}>
+            Holdings
           </div>
-
-          <div className="ethos-stat-grid">
-            {[
-              { label: "Holdings screened clear", value: `${clearCount} of ${holdings.length}` },
-              { label: "Restricted income to purify", value: `$${restrictedTotal.toFixed(2)}` },
-              { label: "Values screen", value: "Active" },
-            ].map((s) => (
-              <div key={s.label} style={{ background: COLORS.ivory, padding: "20px 22px" }}>
-                <div style={{ fontFamily: "Inter", fontSize: 12, color: COLORS.inkSoft, marginBottom: 8 }}>{s.label}</div>
-                <div style={{ fontFamily: "Fraunces", fontSize: 22, fontWeight: 500, color: COLORS.ink }}>{s.value}</div>
-              </div>
-            ))}
-          </div>
-
-          {!showForm && (
-            <button
-              onClick={() => setShowForm(true)}
-              style={{
-                fontFamily: "Inter",
-                fontWeight: 600,
-                fontSize: 13.5,
-                padding: "10px 16px",
-                background: "transparent",
-                color: COLORS.ink,
-                border: `1px solid ${COLORS.ink}`,
-                cursor: "pointer",
-                marginBottom: 28,
-              }}
-            >
-              + Add a holding
-            </button>
-          )}
-
-          <div style={{ fontFamily: "Fraunces", fontSize: 19, fontWeight: 500, color: COLORS.ink, marginBottom: 4 }}>Holdings</div>
-          <div style={{ fontFamily: "Inter", fontSize: 13, color: COLORS.inkSoft, marginBottom: 18 }}>
-            Ordered by value
-          </div>
-
           <div>
             {holdings.map((h, i) => {
               const weightPct = total > 0 ? ((Number(h.value) / total) * 100).toFixed(0) : 0;
@@ -311,44 +296,29 @@ function Dashboard() {
                 <div
                   key={h.id}
                   style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    padding: "16px 0",
-                    borderTop: i === 0 ? `1px solid #E4DDCB` : "none",
-                    borderBottom: "1px solid #E4DDCB",
+                    display: "flex", alignItems: "center", justifyContent: "space-between",
+                    padding: "14px 0", borderTop: i === 0 ? "1px solid #E4DDCB" : "none", borderBottom: "1px solid #E4DDCB",
                   }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-                    <div style={{ width: 38, textAlign: "right", fontFamily: "Inter", fontSize: 12, color: COLORS.inkSoft }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                    <div style={{ width: 32, textAlign: "right", fontFamily: "Inter", fontSize: 11.5, color: COLORS.inkSoft }}>
                       {weightPct}%
                     </div>
                     <div>
-                      <div style={{ fontFamily: "Inter", fontWeight: 600, fontSize: 14.5, color: COLORS.ink }}>{h.name}</div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 3 }}>
-                        <span style={{ fontFamily: "Inter", fontSize: 12, color: COLORS.inkSoft }}>{h.ticker}</span>
+                      <div style={{ fontFamily: "Inter", fontWeight: 600, fontSize: 14, color: COLORS.ink }}>{h.name}</div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 3 }}>
+                        <span style={{ fontFamily: "Inter", fontSize: 11.5, color: COLORS.inkSoft }}>{h.ticker}</span>
                         <StatusDot status={h.screen} />
                       </div>
                     </div>
                   </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-                    <div style={{ textAlign: "right" }}>
-                      <div style={{ fontFamily: "Inter", fontWeight: 600, fontSize: 14.5, color: COLORS.ink }}>
-                        ${Number(h.value).toLocaleString()}
-                      </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <div style={{ fontFamily: "Inter", fontWeight: 600, fontSize: 14, color: COLORS.ink }}>
+                      ${Number(h.value).toLocaleString()}
                     </div>
                     <button
                       onClick={() => handleDelete(h.id)}
-                      title="Delete holding"
-                      style={{
-                        background: "transparent",
-                        border: "none",
-                        color: COLORS.clay,
-                        fontFamily: "Inter",
-                        fontSize: 12,
-                        cursor: "pointer",
-                        padding: 4,
-                      }}
+                      style={{ background: "transparent", border: "none", color: COLORS.clay, fontFamily: "Inter", fontSize: 11.5, cursor: "pointer" }}
                     >
                       Remove
                     </button>
@@ -369,15 +339,12 @@ function Discover() {
 
   return (
     <div>
-      <div style={{ fontFamily: "Fraunces", fontSize: 28, fontWeight: 500, color: COLORS.ink, marginBottom: 8 }}>
-        Discover
-      </div>
-      <div style={{ fontFamily: "Inter", fontSize: 13.5, color: COLORS.inkSoft, marginBottom: 26, maxWidth: 440 }}>
-        Every listing is checked against the values screen — low debt reliance, no interest-based revenue, no
-        restricted sectors — before it appears here.
+      <div style={{ fontFamily: "Fraunces", fontSize: 24, fontWeight: 500, color: COLORS.ink, marginBottom: 8 }}>Discover</div>
+      <div style={{ fontFamily: "Inter", fontSize: 13, color: COLORS.inkSoft, marginBottom: 20 }}>
+        Every listing is checked against the values screen before it appears here.
       </div>
 
-      <div style={{ display: "flex", gap: 8, marginBottom: 24 }}>
+      <div style={{ display: "flex", gap: 6, marginBottom: 20, flexWrap: "wrap" }}>
         {[
           { key: "all", label: "All" },
           { key: "clear", label: "Clear" },
@@ -388,15 +355,10 @@ function Discover() {
             key={f.key}
             onClick={() => setFilter(f.key)}
             style={{
-              fontFamily: "Inter",
-              fontSize: 13,
-              fontWeight: 500,
-              padding: "8px 14px",
-              borderRadius: 20,
+              fontFamily: "Inter", fontSize: 12.5, fontWeight: 500, padding: "7px 12px", borderRadius: 20,
               border: `1px solid ${filter === f.key ? COLORS.ink : "#D8D0BC"}`,
               background: filter === f.key ? COLORS.ink : "transparent",
-              color: filter === f.key ? COLORS.ivory : COLORS.inkSoft,
-              cursor: "pointer",
+              color: filter === f.key ? COLORS.ivory : COLORS.inkSoft, cursor: "pointer",
             }}
           >
             {f.label}
@@ -406,35 +368,15 @@ function Discover() {
 
       <div>
         {filtered.map((d, i) => (
-          <div
-            key={d.id}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              padding: "18px 0",
-              borderTop: i === 0 ? "1px solid #E4DDCB" : "none",
-              borderBottom: "1px solid #E4DDCB",
-            }}
-          >
-            <div>
-              <div style={{ fontFamily: "Inter", fontWeight: 600, fontSize: 14.5, color: COLORS.ink }}>
-                {d.name} <span style={{ color: COLORS.inkSoft, fontWeight: 500 }}>· {d.ticker}</span>
-              </div>
-              <div style={{ fontFamily: "Inter", fontSize: 12.5, color: COLORS.inkSoft, marginTop: 4 }}>{d.sector}</div>
+          <div key={d.id} style={{ padding: "16px 0", borderTop: i === 0 ? "1px solid #E4DDCB" : "none", borderBottom: "1px solid #E4DDCB" }}>
+            <div style={{ fontFamily: "Inter", fontWeight: 600, fontSize: 14, color: COLORS.ink, marginBottom: 4 }}>
+              {d.name} <span style={{ color: COLORS.inkSoft, fontWeight: 500 }}>· {d.ticker}</span>
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 28 }}>
-              <div style={{ textAlign: "right" }}>
-                <div style={{ fontFamily: "Inter", fontSize: 11.5, color: COLORS.inkSoft }}>Debt ratio</div>
-                <div style={{ fontFamily: "Inter", fontSize: 13.5, fontWeight: 600, color: COLORS.ink }}>{d.debtRatio}%</div>
-              </div>
-              <div style={{ textAlign: "right" }}>
-                <div style={{ fontFamily: "Inter", fontSize: 11.5, color: COLORS.inkSoft }}>Interest income</div>
-                <div style={{ fontFamily: "Inter", fontSize: 13.5, fontWeight: 600, color: COLORS.ink }}>{d.interestIncome}%</div>
-              </div>
-              <div style={{ width: 120, textAlign: "right" }}>
-                <StatusDot status={d.status} />
-              </div>
+            <div style={{ fontFamily: "Inter", fontSize: 12, color: COLORS.inkSoft, marginBottom: 8 }}>{d.sector}</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+              <div style={{ fontFamily: "Inter", fontSize: 12, color: COLORS.inkSoft }}>Debt {d.debtRatio}%</div>
+              <div style={{ fontFamily: "Inter", fontSize: 12, color: COLORS.inkSoft }}>Interest {d.interestIncome}%</div>
+              <StatusDot status={d.status} />
             </div>
           </div>
         ))}
@@ -443,7 +385,7 @@ function Discover() {
   );
 }
 
-function Calculator() {
+function Purification() {
   const [holdings, setHoldings] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -457,51 +399,65 @@ function Calculator() {
   }, []);
 
   if (loading) {
-    return (
-      <div style={{ fontFamily: "Inter", fontSize: 13.5, color: COLORS.inkSoft }}>Calculating…</div>
-    );
+    return <div style={{ fontFamily: "Inter", fontSize: 13.5, color: COLORS.inkSoft }}>Calculating…</div>;
   }
 
-  const restrictedTotal = holdings.reduce(
-    (sum, h) => sum + Number(h.value) * (Number(h.interest_pct || 0) / 100),
-    0
-  );
+  const restrictedTotal = holdings.reduce((sum, h) => sum + Number(h.value) * (Number(h.interest_pct || 0) / 100), 0);
   const affectedCount = holdings.filter((h) => Number(h.interest_pct || 0) > 0).length;
 
   return (
-    <div style={{ maxWidth: 460 }}>
-      <div style={{ fontFamily: "Fraunces", fontSize: 28, fontWeight: 500, color: COLORS.ink, marginBottom: 8 }}>
-        Purification
-      </div>
-      <div style={{ fontFamily: "Inter", fontSize: 13.5, color: COLORS.inkSoft, marginBottom: 30 }}>
+    <div>
+      <div style={{ fontFamily: "Fraunces", fontSize: 24, fontWeight: 500, color: COLORS.ink, marginBottom: 8 }}>Purification</div>
+      <div style={{ fontFamily: "Inter", fontSize: 13, color: COLORS.inkSoft, marginBottom: 24 }}>
         A small share of income across your holdings comes from interest or other restricted sources. This
-        calculates that amount so you can donate it separately from your returns.
+        calculates that amount so you can donate it separately.
       </div>
 
-      <div style={{ background: COLORS.ivory, border: "1px solid #E4DDCB", padding: 28 }}>
-        <div style={{ fontFamily: "Inter", fontSize: 12.5, color: COLORS.inkSoft, marginBottom: 10 }}>
+      <div style={{ background: "#fff", border: "1px solid #E4DDCB", borderRadius: 12, padding: 22 }}>
+        <div style={{ fontFamily: "Inter", fontSize: 12, color: COLORS.inkSoft, marginBottom: 8 }}>
           Restricted income, based on your holdings
         </div>
-        <div style={{ fontFamily: "Fraunces", fontSize: 40, fontWeight: 500, color: COLORS.ink, marginBottom: 22 }}>
+        <div style={{ fontFamily: "Fraunces", fontSize: 34, fontWeight: 500, color: COLORS.ink, marginBottom: 18 }}>
           ${restrictedTotal.toFixed(2)}
         </div>
-        <div style={{ display: "flex", justifyContent: "space-between", fontFamily: "Inter", fontSize: 13, color: COLORS.inkSoft, borderTop: "1px solid #E4DDCB", paddingTop: 16 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", fontFamily: "Inter", fontSize: 12.5, color: COLORS.inkSoft, borderTop: "1px solid #E4DDCB", paddingTop: 14 }}>
           <span>Across {affectedCount} holding{affectedCount === 1 ? "" : "s"}</span>
           <span>Calculated live</span>
         </div>
       </div>
 
       {holdings.length === 0 && (
-        <div style={{ fontFamily: "Inter", fontSize: 13, color: COLORS.inkSoft, marginTop: 16 }}>
-          Add holdings on the Dashboard to see this calculated.
+        <div style={{ fontFamily: "Inter", fontSize: 12.5, color: COLORS.inkSoft, marginTop: 14 }}>
+          Add holdings on Home to see this calculated.
         </div>
       )}
     </div>
   );
 }
 
+function Profile({ email, onLogout }) {
+  return (
+    <div>
+      <div style={{ fontFamily: "Fraunces", fontSize: 24, fontWeight: 500, color: COLORS.ink, marginBottom: 20 }}>Profile</div>
+      <div style={{ background: "#fff", border: "1px solid #E4DDCB", borderRadius: 12, padding: 20, marginBottom: 20 }}>
+        <div style={{ fontFamily: "Inter", fontSize: 12, color: COLORS.inkSoft, marginBottom: 4 }}>Signed in as</div>
+        <div style={{ fontFamily: "Inter", fontSize: 14.5, fontWeight: 600, color: COLORS.ink }}>{email}</div>
+      </div>
+      <button
+        onClick={onLogout}
+        style={{
+          fontFamily: "Inter", fontWeight: 600, fontSize: 14, padding: "12px 20px", width: "100%",
+          background: "transparent", color: COLORS.clay, border: `1px solid ${COLORS.clay}`, borderRadius: 8, cursor: "pointer",
+        }}
+      >
+        Log out
+      </button>
+    </div>
+  );
+}
+
 export default function EthosApp() {
-  const [tab, setTab] = useState("dashboard");
+  const [tab, setTab] = useState("home");
   const [session, setSession] = useState(null);
   const [checking, setChecking] = useState(true);
 
@@ -522,73 +478,56 @@ export default function EthosApp() {
   };
 
   if (checking) {
-    return (
-      <div style={{ background: COLORS.ink, minHeight: "100vh" }} />
-    );
+    return <div style={{ background: COLORS.ink, minHeight: "100vh" }} />;
   }
 
   if (!session) {
     return <Auth onLoggedIn={setSession} />;
   }
 
-  const tabs = [
-    { key: "dashboard", label: "Dashboard" },
-    { key: "discover", label: "Discover" },
-    { key: "calculator", label: "Purification" },
+  const email = session.user.email || "";
+  const firstName = email.split("@")[0].replace(/[._-]/g, " ");
+  const displayName = firstName.charAt(0).toUpperCase() + firstName.slice(1);
+
+  const navItems = [
+    { key: "home", label: "Home", icon: (active) => <HomeIcon active={active} /> },
+    { key: "discover", label: "Discover", icon: () => <CompassIcon /> },
+    { key: "purification", label: "Purify", icon: () => <LeafIcon /> },
+    { key: "profile", label: "Profile", icon: () => <UserIcon /> },
   ];
 
   return (
-    <div style={{ background: COLORS.ivory, minHeight: "100%", fontFamily: "Inter" }}>
+    <div style={{ background: COLORS.ivory, minHeight: "100vh", fontFamily: "Inter" }}>
       <style>{FONT_IMPORT}</style>
-      <div className="ethos-shell">
-        <div className="ethos-sidebar">
-          <div className="ethos-brand" style={{ fontFamily: "Fraunces", fontSize: 22, fontWeight: 500, color: COLORS.ivory, marginBottom: 40 }}>
-            Ethos
+      <div className="ethos-app">
+        <div className="ethos-topbar">
+          <div style={{ fontFamily: "Fraunces", fontSize: 18, fontWeight: 500, color: COLORS.ink }}>
+            Hello, {displayName}
           </div>
-          <div className="ethos-nav" style={{ display: "flex", flexDirection: "column", gap: 4, flex: 1 }}>
-            {tabs.map((t) => (
-              <button
-                key={t.key}
-                onClick={() => setTab(t.key)}
-                style={{
-                  textAlign: "left",
-                  background: tab === t.key ? "rgba(246,242,233,0.1)" : "transparent",
-                  border: "none",
-                  color: tab === t.key ? COLORS.ivory : "rgba(246,242,233,0.55)",
-                  fontFamily: "Inter",
-                  fontSize: 13.5,
-                  fontWeight: 500,
-                  padding: "10px 12px",
-                  cursor: "pointer",
-                  borderRadius: 4,
-                }}
-              >
-                {t.label}
-              </button>
-            ))}
+          <div style={{ color: COLORS.inkSoft }}>
+            <BellIcon />
           </div>
-          <button
-            onClick={handleLogout}
-            className="ethos-logout"
-            style={{
-              textAlign: "left",
-              background: "transparent",
-              border: "none",
-              color: "rgba(246,242,233,0.4)",
-              fontFamily: "Inter",
-              fontSize: 12.5,
-              padding: "10px 12px",
-              cursor: "pointer",
-            }}
-          >
-            Log out
-          </button>
         </div>
-        <div className="ethos-main">
-          {tab === "dashboard" && <Dashboard />}
+        <div className="ethos-content">
+          {tab === "home" && <Home goTo={setTab} />}
           {tab === "discover" && <Discover />}
-          {tab === "calculator" && <Calculator />}
+          {tab === "purification" && <Purification />}
+          {tab === "profile" && <Profile email={email} onLogout={handleLogout} />}
         </div>
+      </div>
+
+      <div className="ethos-bottom-nav">
+        {navItems.map((item) => (
+          <button
+            key={item.key}
+            className="ethos-nav-item"
+            onClick={() => setTab(item.key)}
+            style={{ color: tab === item.key ? COLORS.ink : COLORS.inkSoft, fontWeight: tab === item.key ? 700 : 500 }}
+          >
+            {item.icon(tab === item.key)}
+            {item.label}
+          </button>
+        ))}
       </div>
     </div>
   );
